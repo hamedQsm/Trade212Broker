@@ -110,18 +110,21 @@ class Api(object):
     def get_bottom_info(self):
         result = None
         try:
-            statusbar = self.search_id("statusbar")
+            statusbar = self.search_id("equity")
             soup = BeautifulSoup(statusbar.get_attribute('innerHTML'), 'html.parser')
             free_founds = soup.find(id='equity-free')
             account_value = soup.find(id='equity-total')
             live_result = soup.find(id='equity-ppl')
-            blocked_founds = soup.find(id='equity-blocked')
+
+            def get_money_value(txt):
+                num_list = re.findall('\d+', txt)
+                return float(f"{''.join(num_list[:-1])}.{num_list[-1]}")
 
             result = {
-                'free_funds': free_founds.text,
-                'account_value': account_value.text,
-                'live_result': live_result.text,
-                'blocked_founds': blocked_founds.text}
+                'free_funds': get_money_value(free_founds.text),
+                'account_value': get_money_value(account_value.text),
+                'live_result': get_money_value(live_result.text),
+            }
 
             print(result)
         except Exception as e:
