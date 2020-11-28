@@ -137,7 +137,7 @@ class Api(object):
             table = self.search_class_name("dataTable")
             table_body = self.search_tag("tbody", dom=table)
             soup = BeautifulSoup(table_body.get_attribute('innerHTML'), 'html.parser')
-            result = []
+            result = {}
 
             data_codes = soup.select("tr")
             names = soup.select("td.name")
@@ -157,14 +157,15 @@ class Api(object):
                 current_price_text = current_price.text
                 market_value = market_values[index]
 
-                result.append({
-                    "name": name.text.replace("\n", "").replace(u'\xa0', ""),
-                    "data_code": data_code,
-                    "quantity": quantity.text.replace("\n", "").replace(u'\xa0', ""),
-                    "market_value": market_value.text.replace("\n", "").replace(u'\xa0', ""),
-                    "average_price": average_price.text.replace("\n", "").replace(u'\xa0', ""),
-                    "current_price": current_price_text.replace("\n", "").replace(u'\xa0', ""),
-                    "profit": ppl.text.replace("\n", "").replace(u'\xa0', "")
+                result.update({
+                    name.text.replace("\n", "").replace(u'\xa0', ""): {
+                        "data_code": data_code,
+                        "quantity": quantity.text.replace("\n", "").replace(u'\xa0', ""),
+                        "market_value": market_value.text.replace("\n", "").replace(u'\xa0', ""),
+                        "average_price": average_price.text.replace("\n", "").replace(u'\xa0', ""),
+                        "current_price": current_price_text.replace("\n", "").replace(u'\xa0', ""),
+                        "profit": ppl.text.replace("\n", "").replace(u'\xa0', "")
+                    }
                 })
 
 
@@ -240,6 +241,13 @@ class Api(object):
 
         return str_quantity
 
+    def get_current_price(self, name, data_code):
+        try:
+            tradebox = self._get_trade_box(name, data_code)
+
+        except Exception as e:
+            self.handle_exception(e)
+            pass
     def buy(self, name, data_code, quantity):
         try:
             logger.debug(f"buy {quantity} of {name} ")
@@ -252,7 +260,7 @@ class Api(object):
             logger.debug(f"bought {str_quantity} of {name}")
             time.sleep(1)
             self.browser.get("https://www.trading212.com/")
-            return
+            return True
         except Exception as e:
             self.handle_exception(e)
             pass
@@ -269,7 +277,7 @@ class Api(object):
             logger.debug(f"sold {str_quantity} of {name}")
             time.sleep(1)
             self.browser.get("https://www.trading212.com/")
-            return
+            return True
         except Exception as e:
             self.handle_exception(e)
             pass
