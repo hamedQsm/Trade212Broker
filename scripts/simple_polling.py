@@ -34,20 +34,23 @@ def check_and_buy_instrument(api, name, instrument_data, original_free_funds, bu
 
     """
     # Check if we have still capacity to buy
+    # Check if we have still capacity to buy
     if api.get_bottom_info()['free_funds'] > CONFIG['lb_free_fund_portion'] * original_free_funds:
 
         crnt_price = get_instrument_crnt_price(api, name)
         pre_price = instrument_data['current_price']
-        logger.info(f'{name}: price change --> {(pre_price - crnt_price) / pre_price}')
+        logger.info('{}: price change: {:.3f}'.format(name, (crnt_price - pre_price) / pre_price))
 
         # if the price drifted down
         if (pre_price - crnt_price) / pre_price > CONFIG['buy_q']:
             # if we have not exhausted our capacity to buy this specific instrument
             if buy_sell_rec[name] < CONFIG['n_buys_more_than_sell']:  # TODO: make this smarter?
+                logger.debug(
+                    f"Buying {min(instrument_data['quantity'] * CONFIG['buy_portion'], original_free_funds / crnt_price)} of {name}")
                 api.buy(
-                    instrument_data['name'],
+                    name,
                     instrument_data['data_code'],
-                    max(instrument_data['market_value'] * CONFIG['buy_portion'], original_free_funds)
+                    min(instrument_data['quantity'] * CONFIG['buy_portion'], original_free_funds / crnt_price)
                 )
                 return True
     return False
@@ -68,16 +71,16 @@ def check_and_sell_instrument(api, name, instrument_data, buy_sell_rec):
 
     crnt_price = get_instrument_crnt_price(api, name)
     pre_price = instrument_data['current_price']
-    logger.info(f'{name}: price change --> {(pre_price - crnt_price) / pre_price}')
+    logger.info('{}: price change: {:.3f}'.format(name, (crnt_price - pre_price) / pre_price))
 
     # if the price drifted down
     if (crnt_price - pre_price) / pre_price > CONFIG['sell_q']:
         # if we have not exhausted our capacity to buy this specific instrument
         if buy_sell_rec[name] < 0 and -buy_sell_rec[name] < CONFIG['n_sell_more_than_buy']:  # TODO: make this smarter?
             api.sell(
-                instrument_data['name'],
+                name,
                 instrument_data['data_code'],
-                min(instrument_data['market_value'] * CONFIG['sell_portion'], instrument_data['quantity'])
+                instrument_data['quantity'] * CONFIG['sell_portion']
             )
             return True
     return False
@@ -100,6 +103,7 @@ def start_poll(api):
 
             if check_and_buy_instrument(api, inst_name, inst_data, original_free_funds, buy_sell_record):
                 buy_sell_record[inst_name] += 1
+                continue
 
             if check_and_sell_instrument(api, inst_name, inst_data, buy_sell_record):
                 buy_sell_record[inst_name] -= 1

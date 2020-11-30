@@ -241,13 +241,10 @@ class Api(object):
 
         return str_quantity
 
-    def get_current_price(self, name, data_code):
-        try:
-            tradebox = self._get_trade_box(name, data_code)
+    def got_to_main_page(self):
+        self.browser.get("https://www.trading212.com/")
+        time.sleep(1)
 
-        except Exception as e:
-            self.handle_exception(e)
-            pass
     def buy(self, name, data_code, quantity):
         try:
             logger.debug(f"buy {quantity} of {name} ")
@@ -258,8 +255,8 @@ class Api(object):
             str_quantity = self._fill_in_order(quantity)
 
             logger.debug(f"bought {str_quantity} of {name}")
-            time.sleep(1)
-            self.browser.get("https://www.trading212.com/")
+            self.got_to_main_page()
+
             return True
         except Exception as e:
             self.handle_exception(e)
@@ -275,8 +272,7 @@ class Api(object):
             str_quantity = self._fill_in_order(quantity)
 
             logger.debug(f"sold {str_quantity} of {name}")
-            time.sleep(1)
-            self.browser.get("https://www.trading212.com/")
+            self.got_to_main_page()
             return True
         except Exception as e:
             self.handle_exception(e)
