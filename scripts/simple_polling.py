@@ -15,9 +15,11 @@ CONFIG = {
 
 poll_wait = 5 * 60
 
+
 def get_instrument_crnt_price(api, name):
     # TODO: change this to retrieve only the given inst price directly from the page.
-    return api.get_portfolio_table()['current_price']
+    return api.get_portfolio_table()[name]['current_price']
+
 
 def check_and_buy_instrument(api, name, instrument_data, original_free_funds, buy_sell_rec):
     """
@@ -32,42 +34,54 @@ def check_and_buy_instrument(api, name, instrument_data, original_free_funds, bu
 
     """
     # Check if we have still capacity to buy
-    if api.get_bottom_info()['free_fund'] > CONFIG['lb_free_fund_portion'] * original_free_funds:
+    if api.get_bottom_info()['free_funds'] > CONFIG['lb_free_fund_portion'] * original_free_funds:
+
+        crnt_price = get_instrument_crnt_price(api, name)
+        pre_price = instrument_data['current_price']
+        logger.info(f'{name}: price change --> {(pre_price - crnt_price) / pre_price}')
+
         # if the price drifted down
-        if get_instrument_crnt_price(api, name) < instrument_data['current_price'] * CONFIG['buy_q']:
+        if (pre_price - crnt_price) / pre_price > CONFIG['buy_q']:
             # if we have not exhausted our capacity to buy this specific instrument
-            if buy_sell_rec[name] < CONFIG['n_buys_more_than_sell']: # TODO: make this smarter?
+            if buy_sell_rec[name] < CONFIG['n_buys_more_than_sell']:  # TODO: make this smarter?
                 api.buy(
                     instrument_data['name'],
                     instrument_data['data_code'],
                     max(instrument_data['market_value'] * CONFIG['buy_portion'], original_free_funds)
                 )
-                return  True
+                return True
     return False
 
+
 def check_and_sell_instrument(api, name, instrument_data, buy_sell_rec):
-        """
+    """
 
-        Args:
-            api:
-            name:
-            instrument_data: the data got from the previous poll
-            instrument_original_market_value:
+    Args:
+        api:
+        name:
+        instrument_data: the data got from the previous poll
+        instrument_original_market_value:
 
-        Returns:
+    Returns:
 
-        """
-        # if the price drifted down
-        if get_instrument_crnt_price(api, name) < instrument_data['current_price'] * CONFIG['buy_q']:
-            # if we have not exhausted our capacity to buy this specific instrument
-            if buy_sell_rec[name] < CONFIG['n_sell_more_than_buy']:  # TODO: make this smarter?
-                api.sell(
-                    instrument_data['name'],
-                    instrument_data['data_code'],
-                    min(instrument_data['market_value'] * CONFIG['sell_portion'], instrument_data['quantity'])
-                )
-                return True
-        return False
+    """
+
+    crnt_price = get_instrument_crnt_price(api, name)
+    pre_price = instrument_data['current_price']
+    logger.info(f'{name}: price change --> {(pre_price - crnt_price) / pre_price}')
+
+    # if the price drifted down
+    if (crnt_price - pre_price) / pre_price > CONFIG['sell_q']:
+        # if we have not exhausted our capacity to buy this specific instrument
+        if buy_sell_rec[name] < 0 and -buy_sell_rec[name] < CONFIG['n_sell_more_than_buy']:  # TODO: make this smarter?
+            api.sell(
+                instrument_data['name'],
+                instrument_data['data_code'],
+                min(instrument_data['market_value'] * CONFIG['sell_portion'], instrument_data['quantity'])
+            )
+            return True
+    return False
+
 
 def start_poll(api):
     original_positions = api.get_portfolio_table()

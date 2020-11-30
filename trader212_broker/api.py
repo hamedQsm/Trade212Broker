@@ -4,6 +4,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 import selenium.common.exceptions
+import re
 
 from selenium.webdriver.common.keys import Keys
 
@@ -126,7 +127,6 @@ class Api(object):
                 'live_result': get_money_value(live_result.text),
             }
 
-            print(result)
         except Exception as e:
             self.handle_exception(e)
             pass
@@ -160,11 +160,11 @@ class Api(object):
                 result.update({
                     name.text.replace("\n", "").replace(u'\xa0', ""): {
                         "data_code": data_code,
-                        "quantity": quantity.text.replace("\n", "").replace(u'\xa0', ""),
-                        "market_value": market_value.text.replace("\n", "").replace(u'\xa0', ""),
-                        "average_price": average_price.text.replace("\n", "").replace(u'\xa0', ""),
-                        "current_price": current_price_text.replace("\n", "").replace(u'\xa0', ""),
-                        "profit": ppl.text.replace("\n", "").replace(u'\xa0', "")
+                        "quantity": float(quantity.text.replace("\n", "").replace(u'\xa0', "")),
+                        "market_value": float(market_value.text.replace("\n", "").replace(u'\xa0', "")),
+                        "average_price": float(average_price.text.replace("\n", "").replace(u'\xa0', "")),
+                        "current_price": float(current_price_text.replace("\n", "").replace(u'\xa0', "")),
+                        "profit": float(ppl.text.replace("\n", "").replace(u'\xa0', ""))
                     }
                 })
 
