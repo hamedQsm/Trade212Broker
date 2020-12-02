@@ -146,6 +146,7 @@ class Api(object):
             ppls = soup.select("td.ppl")
             prices_buy = soup.select("td.currentPrice")
             market_values = soup.select("td.marketValue")
+            return_percents = soup.select("td.returnPercent")
 
             for index in range(len(names)):
                 data_code = data_codes[index]['data-code']
@@ -154,8 +155,8 @@ class Api(object):
                 average_price = average_prices[index]
                 ppl = ppls[index]
                 current_price = prices_buy[index]
-                current_price_text = current_price.text
                 market_value = market_values[index]
+                return_percent = return_percents[index]
 
                 result.update({
                     name.text.replace("\n", "").replace(u'\xa0', ""): {
@@ -163,8 +164,9 @@ class Api(object):
                         "quantity": float(quantity.text.replace("\n", "").replace(u'\xa0', "")),
                         "market_value": float(market_value.text.replace("\n", "").replace(u'\xa0', "")),
                         "average_price": float(average_price.text.replace("\n", "").replace(u'\xa0', "")),
-                        "current_price": float(current_price_text.replace("\n", "").replace(u'\xa0', "")),
-                        "profit": float(ppl.text.replace("\n", "").replace(u'\xa0', ""))
+                        "current_price": float(current_price.text.replace("\n", "").replace(u'\xa0', "")),
+                        "profit": float(ppl.text.replace("\n", "").replace(u'\xa0', "")),
+                        "return_percent": float(return_percent.text[:-1].replace("\n", "").replace(u'\xa0', ""))
                     }
                 })
 
@@ -214,7 +216,6 @@ class Api(object):
         Returns:
 
         """
-
         sell_input = self.search_tag(
             "input", dom=self.search_class_name("invest-market-order")
         )
@@ -226,7 +227,7 @@ class Api(object):
         if "." in entered_value:
             str_quantity = "{:.2f}".format(quantity)
         else:
-            str_quantity = int(quantity)
+            str_quantity = str(int(quantity))
 
         sell_input.send_keys(Keys.BACK_SPACE)
         sell_input.send_keys(str_quantity)
@@ -243,7 +244,7 @@ class Api(object):
 
     def got_to_main_page(self):
         self.browser.get("https://www.trading212.com/")
-        time.sleep(1)
+        time.sleep(5)
 
     def buy(self, name, data_code, quantity):
         try:
@@ -264,7 +265,7 @@ class Api(object):
 
     def sell(self, name, data_code, quantity):
         try:
-            logger.debug(f"buy {quantity} of {name} ")
+            logger.debug(f"Sell {quantity} of {name} ")
             tradebox = self._get_trade_box(name, data_code)
             sell_btn = self.search_class_name('sell-button', dom=tradebox)
             sell_btn.click()
@@ -282,5 +283,4 @@ class Api(object):
     def handle_exception(self, exception):
         logger.critical("got exception")
         logger.critical(exception)
-        # raise exception
-        # send_email(exception)
+        self.got_to_main_page()
