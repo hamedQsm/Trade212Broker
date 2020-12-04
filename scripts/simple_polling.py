@@ -23,22 +23,30 @@ def check_and_buy_instrument(api, name, max_buy_quantity):
     # Check if we have still capacity to buy
 
     instrument_data = api.get_portfolio_table()[name]
-    crnt_market_value = instrument_data['market_value']
-    payed_value = crnt_market_value - instrument_data['profit']
+    quantity = instrument_data['quantity']
+    avg_price = instrument_data['average_price']
+    crnt_price = instrument_data['current_price']
+
+    # crnt_market_value = instrument_data['market_value']
+    # payed_value = crnt_market_value - instrument_data['profit']
     return_percent = instrument_data['return_percent']
 
     # to get the price comparable to market value (in Euro)
-    crnt_corrected_price = crnt_market_value/instrument_data['quantity']
+    # crnt_corrected_price = crnt_market_value/instrument_data['quantity']
 
     logger.info('{}: profit: {:.3f}%'.format(name, return_percent))
 
     # if the price drifted down
     if return_percent < -CONFIG['under_value_prcnt']:
-        print(type(return_percent))
-        print(-CONFIG['under_value_prcnt'])
-        # if we have not exhausted our capacity to buy this specific instrument
+        # Euro corrected version
+        # buy_quantity = min(
+        #     (crnt_market_value/(1 + CONFIG['under_value_prcnt']) - payed_value)/crnt_corrected_price,
+        #     max_buy_quantity
+        # )
+        #  no correction
         buy_quantity = min(
-            (crnt_market_value/(1 + CONFIG['under_value_prcnt']) - payed_value)/crnt_corrected_price,
+            quantity*
+            ((1 -CONFIG['under_value_prcnt'])*avg_price - crnt_price)/(CONFIG['under_value_prcnt']*crnt_price),
             max_buy_quantity
         )
         logger.debug(f"Buying {buy_quantity} of {name}")
